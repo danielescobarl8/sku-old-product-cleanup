@@ -46,7 +46,6 @@ if st.button("Process Files"):
         st.write("Inventory File Columns:", df_inventory.columns.tolist())  # Debugging output
         
         df_inventory = df_inventory.rename(columns={
-            "Mpl Product Id": "MPL_PRODUCT_ID",
             "Item Number": "PID",
             "Available Qty": "Available_Qty"
         })
@@ -67,13 +66,9 @@ if st.button("Process Files"):
         # Convert MODEL_YEAR to numeric
         df_feed["MODEL_YEAR"] = pd.to_numeric(df_feed["MODEL_YEAR"], errors='coerce')
         
-        # Merge with inventory to get Available Qty and keep MPL_PRODUCT_ID from Inventory File
-        df_merged = df_feed.merge(df_inventory[['PID', 'MPL_PRODUCT_ID', 'Available_Qty']], on="PID", how="left")
+        # Merge with inventory to get Available Qty using PID as the key
+        df_merged = df_feed.merge(df_inventory[['PID', 'Available_Qty']], on="PID", how="left")
         st.write("Merged DataFrame Columns:", df_merged.columns.tolist())  # Debugging output
-        
-        if "MPL_PRODUCT_ID" not in df_merged.columns:
-            st.error("Error: 'MPL_PRODUCT_ID' is missing after merging. Check column names in the uploaded files.")
-            st.stop()
         
         df_merged["Available_Qty"].fillna(0, inplace=True)
         
