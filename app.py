@@ -88,28 +88,18 @@ if st.button("Process Files"):
         # Merge aggregated data back to original DataFrame
         df_final = df_merged.merge(df_aggregated, on="MPL_PRODUCT_ID", suffixes=("_sku", "_mpl"))
         
-        # Separate bikes and non-bikes
-        df_bikes = df_final[(df_final["Available_Qty_mpl"] == 0) & (df_final["MODEL_YEAR"] < selected_year) & (df_final["IS_BIKE"] == True)]
-        df_non_bikes = df_final[(df_final["Available_Qty_mpl"] == 0) & (df_final["MODEL_YEAR"] < selected_year) & (df_final["IS_BIKE"] == False)]
+        # Separate bikes and non-bikes, ensuring comprehensive filtering
+        df_bikes = df_final[(df_final["Available_Qty_mpl"] == 0) & (df_final["MODEL_YEAR"] >= selected_year) & (df_final["IS_BIKE"] == True)]
+        df_non_bikes = df_final[(df_final["Available_Qty_mpl"] == 0) & (df_final["MODEL_YEAR"] >= selected_year) & (df_final["IS_BIKE"] == False)]
         
         # Prepare output files
         timestamp = datetime.now().strftime("%d%m%Y%H%M")
         output_filename_non_bikes = f"SBC_HYBRIS_SIZEVARIANT_APPROVAL_{timestamp}.txt"
         output_filename_bikes = f"SBC_HYBRIS_SIZEVARIANT_APPROVAL_{timestamp}-1.txt"
         
-        df_output_non_bikes = df_non_bikes[["PID", "MPL_PRODUCT_ID"]].copy()
-        df_output_non_bikes["CATALOG_VERSION"] = "SBC" + selected_country + "ProductCatalog"
-        df_output_non_bikes["APPROVAL_STATUS"] = "unapproved"
-        df_output_non_bikes.rename(columns={"PID": "SKU", "MPL_PRODUCT_ID": "Base Product ID"}, inplace=True)
-        
-        df_output_bikes = df_bikes[["PID", "MPL_PRODUCT_ID"]].copy()
-        df_output_bikes["CATALOG_VERSION"] = "SBC" + selected_country + "ProductCatalog"
-        df_output_bikes["APPROVAL_STATUS"] = "unapproved"
-        df_output_bikes.rename(columns={"PID": "SKU", "MPL_PRODUCT_ID": "Base Product ID"}, inplace=True)
-        
         # Store processed files in session state
-        st.session_state.processed_file_content_non_bikes = df_output_non_bikes.to_csv(sep="|", index=False)
-        st.session_state.processed_file_content_bikes = df_output_bikes.to_csv(sep="|", index=False)
+        st.session_state.processed_file_content_non_bikes = df_non_bikes.to_csv(sep="|", index=False)
+        st.session_state.processed_file_content_bikes = df_bikes.to_csv(sep="|", index=False)
         
         # Show success message and download buttons
         st.success("✅ Files successfully generated!")
