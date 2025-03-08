@@ -97,19 +97,11 @@ if st.button("Process Files"):
         output_filename_non_bikes = f"SBC_HYBRIS_SIZEVARIANT_APPROVAL_{timestamp}.txt"
         output_filename_bikes = f"SBC_HYBRIS_SIZEVARIANT_APPROVAL_{timestamp}-1.txt"
         
-        df_output_non_bikes = df_non_bikes[["PID", "MPL_PRODUCT_ID"]].copy()
-        df_output_non_bikes["CATALOG_VERSION"] = "SBC" + selected_country + "ProductCatalog"
-        df_output_non_bikes["APPROVAL_STATUS"] = "unapproved"
-        df_output_non_bikes.rename(columns={"PID": "SKU", "MPL_PRODUCT_ID": "Base Product ID"}, inplace=True)
-        
-        df_output_bikes = df_bikes[["PID", "MPL_PRODUCT_ID"]].copy()
-        df_output_bikes["CATALOG_VERSION"] = "SBC" + selected_country + "ProductCatalog"
-        df_output_bikes["APPROVAL_STATUS"] = "unapproved"
-        df_output_bikes.rename(columns={"PID": "SKU", "MPL_PRODUCT_ID": "Base Product ID"}, inplace=True)
-        
-        # Store processed files in session state
-        st.session_state.processed_file_content_non_bikes = df_output_non_bikes.to_csv(sep="|", index=False)
-        st.session_state.processed_file_content_bikes = df_output_bikes.to_csv(sep="|", index=False)
+        # Store processed files in session state for persistent downloads
+        if "processed_file_content_non_bikes" not in st.session_state:
+            st.session_state.processed_file_content_non_bikes = df_non_bikes.to_csv(sep="|", index=False)
+        if "processed_file_content_bikes" not in st.session_state:
+            st.session_state.processed_file_content_bikes = df_bikes.to_csv(sep="|", index=False)
         
         # Show success message and download buttons
         st.success("✅ Files successfully generated!")
