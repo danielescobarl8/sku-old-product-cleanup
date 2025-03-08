@@ -57,13 +57,13 @@ if st.button("Process Files"):
             df_feed = pd.read_csv(data_feed_file, delimiter="|")
         
         # Ensure required columns exist
-        required_columns = {"PID", "MPL_PRODUCT_ID", "MODEL_YEAR", "BASE_APPROVED", "COLOR_APPROVED", "SKU_APPROVED", "ECOM_ENABLED"}
+        required_columns = {"PID", "MPL_PRODUCT_ID", "MODEL_YEAR", "BASE_APPROVED", "COLOR_APPROVED", "SKU_APPROVED", "ECOM_ENABLED", "IS_BIKE"}
         if not required_columns.issubset(df_feed.columns):
             st.error(f"Data Feed is missing required columns: {required_columns - set(df_feed.columns)}")
             st.stop()
         
         # Convert approval columns to boolean
-        approval_columns = ["BASE_APPROVED", "COLOR_APPROVED", "SKU_APPROVED", "ECOM_ENABLED"]
+        approval_columns = ["BASE_APPROVED", "COLOR_APPROVED", "SKU_APPROVED", "ECOM_ENABLED", "IS_BIKE"]
         for col in approval_columns:
             df_feed[col] = df_feed[col].astype(str).str.strip().str.lower().replace({"true": True, "false": False}).astype(bool)
         
@@ -88,42 +88,40 @@ if st.button("Process Files"):
         # Merge aggregated data back to original DataFrame
         df_final = df_merged.merge(df_aggregated, on="MPL_PRODUCT_ID", suffixes=("_sku", "_mpl"))
         
-        # Filter: Available Qty (aggregated) = 0 and MODEL_YEAR < selected year
-        df_final_filtered = df_final[(df_final["Available_Qty_mpl"] == 0) & (df_final["MODEL_YEAR"] < selected_year)]
+        # Separate bikes and non-bikes
+        df_bikes = df_final[(df_final["Available_Qty_mpl"] == 0) & (df_final["MODEL_YEAR"] < selected_year) & (df_final["IS_BIKE"] == True)]
+        df_non_bikes = df_final[(df_final["Available_Qty_mpl"] == 0) & (df_final["MODEL_YEAR"] < selected_year) & (df_final["IS_BIKE"] == False)]
         
-        # Identify products with low stock (1 to 5 units)
-        df_low_stock = df_final[(df_final["Available_Qty_mpl"] > 0) & (df_final["Available_Qty_mpl"] <= 5) & (df_final["MODEL_YEAR"] < selected_year)]
-        
-        # Prepare output file
-        df_output = df_final_filtered[["PID", "MPL_PRODUCT_ID"]].copy()
-        df_output["CATALOG_VERSION"] = "SBC" + selected_country + "ProductCatalog"
-        df_output["APPROVAL_STATUS"] = "unapproved"
-        df_output.rename(columns={"PID": "SKU", "MPL_PRODUCT_ID": "Base Product ID"}, inplace=True)
-        
-        # Store processed file in session state
-        st.session_state.processed_file_content = df_output.to_csv(sep="|", index=False)
-        
-        # Generate timestamp for filename
+        # Prepare output files
         timestamp = datetime.now().strftime("%d%m%Y%H%M")
-        st.session_state.output_filename = f"SBC_HYBRIS_SIZEVARIANT_APPROVAL_{timestamp}.txt"
+        output_filename_non_bikes = f"SBC_HYBRIS_SIZEVARIANT_APPROVAL_{timestamp}.txt"
+        output_filename_bikes = f"SBC_HYBRIS_SIZEVARIANT_APPROVAL_{timestamp}-1.txt"
         
-        # Show success message and download button
-        st.success("✅ File successfully generated!")
+        df_output_non_bikes = df_non_bikes[["PID", "MPL_PRODUCT_ID"]].copy()
+        df_output_non_bikes["CATALOG_VERSION"] = "SBC" + selected_country + "ProductCatalog"
+        df_output_non_bikes["APPROVAL_STATUS"] = "unapproved"
+        df_output_non_bikes.rename(columns={"PID": "SKU", "MPL_PRODUCT_ID": "Base Product ID"}, inplace=True)
+        
+        df_output_bikes = df_bikes[["PID", "MPL_PRODUCT_ID"]].copy()
+        df_output_bikes["CATALOG_VERSION"] = "SBC" + selected_country + "ProductCatalog"
+        df_output_bikes["APPROVAL_STATUS"] = "unapproved"
+        df_output_bikes.rename(columns={"PID": "SKU", "MPL_PRODUCT_ID": "Base Product ID"}, inplace=True)
+        
+        # Store processed files in session state
+        st.session_state.processed_file_content_non_bikes = df_output_non_bikes.to_csv(sep="|", index=False)
+        st.session_state.processed_file_content_bikes = df_output_bikes.to_csv(sep="|", index=False)
+        
+        # Show success message and download buttons
+        st.success("✅ Files successfully generated!")
         st.download_button(
-            label="Download Processed File",
-            data=st.session_state.processed_file_content,
-            file_name=st.session_state.output_filename,
+            label="Download Processed File (Non-Bikes)",
+            data=st.session_state.processed_file_content_non_bikes,
+            file_name=output_filename_non_bikes,
             mime="text/plain"
         )
-        
-        # Display additional suggestions for deactivation (low stock)
-        if not df_low_stock.empty:
-            st.subheader("Suggested Additional Deactivations (Low Stock)")
-            st.write(df_low_stock[["PID", "MPL_PRODUCT_ID", "Available_Qty_mpl", "MODEL_YEAR"]])
-        
-        # Debugging Info (Hidden in Expandable Section)
-        with st.expander("🔍 Debugging Information"):
-            st.write("Inventory File Columns:", df_inventory.columns.tolist())
-            st.write("Data Feed Columns:", df_feed.columns.tolist())
-            st.write("Filtered Data Feed Rows:", len(df_feed_filtered))
-            st.write("Merged DataFrame Columns:", df_merged.columns.tolist())
+        st.download_button(
+            label="Download Processed File (Bikes)",
+            data=st.session_state.processed_file_content_bikes,
+            file_name=output_filename_bikes,
+            mime="text/plain"
+        )
