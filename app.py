@@ -24,9 +24,10 @@ st.title("SKU Unapproval Tool")
 
 # Upload Files
 st.subheader("Upload Inventory File (Excel)")
+st.markdown("Download the latest inventory file from [Tableau](https://us-west-2b.online.tableau.com/#/site/specialized/views/GlobalHybrisInventory_16535184102250/TodaysInventory?:iid=1). Navigate to your country's tab and export as an Excel file.")
 inventory_file = st.file_uploader("Choose an Excel file", type=["xlsx"])
 
-st.subheader("Upload Data Feed (CSV or TXT)")
+st.subheader("Upload Data Feed (CSV or TXT) (From your country)")
 data_feed_file = st.file_uploader("Choose a CSV or TXT file", type=["csv", "txt"])
 
 # Select Country
@@ -35,9 +36,10 @@ country_options = ["Brazil", "Chile", "Mexico", "Colombia", "Argentina"]
 selected_country = st.selectbox("Choose a country:", country_options)
 
 # Select Year Filter
-st.subheader("Select Year Threshold")
+st.subheader("Select the earliest model year to keep active")
+st.markdown("Products from the selected year or newer will be **excluded** from this analysis. For example, if you select **2023**, any product from 2023, 2024, or newer will remain active, while older products will be considered for deactivation.")
 current_year = datetime.now().year
-selected_year = st.selectbox("Select the earliest model year to keep active:", [current_year, current_year - 1, current_year - 2])
+selected_year = st.selectbox("Choose model year threshold:", [current_year, current_year - 1, current_year - 2])
 
 if st.button("Process Files"):
     if inventory_file and data_feed_file:
@@ -125,4 +127,3 @@ if st.button("Process Files"):
             st.write("Data Feed Columns:", df_feed.columns.tolist())
             st.write("Filtered Data Feed Rows:", len(df_feed_filtered))
             st.write("Merged DataFrame Columns:", df_merged.columns.tolist())
-
