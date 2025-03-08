@@ -75,8 +75,8 @@ if st.button("Process Files"):
             (df_feed["ECOM_ENABLED"] == True)
         ]
         
-        # Merge with inventory to get Available Qty
-        df_merged = df_feed_filtered.merge(df_inventory, left_on="PID", right_on="PID", how="left")
+        # Merge with inventory to get Available Qty and keep MPL_PRODUCT_ID from Inventory File
+        df_merged = df_feed_filtered.merge(df_inventory[['PID', 'MPL_PRODUCT_ID', 'Available_Qty']], on="PID", how="left")
         st.write("Merged DataFrame Columns:", df_merged.columns.tolist())  # Debugging output
         
         if "MPL_PRODUCT_ID" not in df_merged.columns:
