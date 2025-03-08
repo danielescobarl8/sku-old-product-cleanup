@@ -43,22 +43,25 @@ if st.button("Process Files"):
     if inventory_file and data_feed_file:
         # Load inventory file
         df_inventory = pd.read_excel(inventory_file, sheet_name=0)
+        st.write("Inventory File Columns:", df_inventory.columns.tolist())  # Debugging output
+        
         df_inventory = df_inventory.rename(columns={
             "Mpl Product Id": "MPL_PRODUCT_ID",
             "Item Number": "PID",
             "Available Qty": "Available_Qty"
         })
-
+        
         # Load data feed
         if data_feed_file.name.endswith(".csv"):
             df_feed = pd.read_csv(data_feed_file, delimiter=";")
         else:
             df_feed = pd.read_csv(data_feed_file, delimiter="|")
-
+        st.write("Data Feed Columns:", df_feed.columns.tolist())  # Debugging output
+        
         # Ensure required columns exist
         required_columns = {"PID", "MPL_PRODUCT_ID", "COLOR_ID", "BASE_APPROVED", "COLOR_APPROVED", "SKU_APPROVED", "ECOM_ENABLED", "MODEL_YEAR"}
         if not required_columns.issubset(df_feed.columns):
-            st.error("Data Feed is missing required columns.")
+            st.error(f"Data Feed is missing required columns: {required_columns - set(df_feed.columns)}")
             st.stop()
         
         # Convert MODEL_YEAR to numeric
@@ -73,7 +76,13 @@ if st.button("Process Files"):
         ]
         
         # Merge with inventory to get Available Qty
-        df_merged = df_feed_filtered.merge(df_inventory, on="PID", how="left")
+        df_merged = df_feed_filtered.merge(df_inventory, left_on="PID", right_on="PID", how="left")
+        st.write("Merged DataFrame Columns:", df_merged.columns.tolist())  # Debugging output
+        
+        if "MPL_PRODUCT_ID" not in df_merged.columns:
+            st.error("Error: 'MPL_PRODUCT_ID' is missing after merging. Check column names in the uploaded files.")
+            st.stop()
+        
         df_merged["Available_Qty"].fillna(0, inplace=True)
         
         # Aggregate Available Qty at MPL_PRODUCT_ID level
