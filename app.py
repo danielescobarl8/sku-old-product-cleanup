@@ -63,6 +63,11 @@ if st.button("Process Files"):
             st.error(f"Data Feed is missing required columns: {required_columns - set(df_feed.columns)}")
             st.stop()
         
+        # Convert approval columns to boolean
+        approval_columns = ["BASE_APPROVED", "COLOR_APPROVED", "SKU_APPROVED", "ECOM_ENABLED"]
+        for col in approval_columns:
+            df_feed[col] = df_feed[col].astype(str).str.strip().str.lower().replace({"true": True, "false": False}).astype(bool)
+        
         # Convert MODEL_YEAR to numeric
         df_feed["MODEL_YEAR"] = pd.to_numeric(df_feed["MODEL_YEAR"], errors='coerce')
         
@@ -73,6 +78,8 @@ if st.button("Process Files"):
             (df_feed["SKU_APPROVED"] == True) &
             (df_feed["ECOM_ENABLED"] == True)
         ]
+        
+        st.write("Filtered Data Feed Rows:", len(df_feed_filtered))  # Debugging output
         
         # Merge with inventory to get Available Qty using PID as the key
         df_merged = df_feed_filtered.merge(df_inventory[['PID', 'Available_Qty']], on="PID", how="left")
