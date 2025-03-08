@@ -96,27 +96,32 @@ if st.button("Process Files"):
         # Filter: Available Qty (aggregated) = 0 and MODEL_YEAR < selected year
         df_final_filtered = df_final[(df_final["Available_Qty_mpl"] == 0) & (df_final["MODEL_YEAR"] < selected_year)]
         
+        # Identify products with low stock (1 to 5 units)
+        df_low_stock = df_final[(df_final["Available_Qty_mpl"] > 0) & (df_final["Available_Qty_mpl"] <= 5) & (df_final["MODEL_YEAR"] < selected_year)]
+        
         # Prepare output file
         df_output = df_final_filtered[["PID", "MPL_PRODUCT_ID"]].copy()
         df_output["CATALOG_VERSION"] = "SBC" + selected_country + "ProductCatalog"
         df_output["APPROVAL_STATUS"] = "unapproved"
         df_output.rename(columns={"PID": "SKU", "MPL_PRODUCT_ID": "Base Product ID"}, inplace=True)
         
+        # Store processed file in session state
+        st.session_state.processed_file_content = df_output.to_csv(sep="|", index=False)
+        
         # Generate timestamp for filename
         timestamp = datetime.now().strftime("%d%m%Y%H%M")
-        output_filename = f"SBC_HYBRIS_SIZEVARIANT_APPROVAL_{timestamp}.txt"
-        
-        # Convert to text format
-        output = io.StringIO()
-        df_output.to_csv(output, sep="|", index=False)
-        processed_file_content = output.getvalue()
+        st.session_state.output_filename = f"SBC_HYBRIS_SIZEVARIANT_APPROVAL_{timestamp}.txt"
         
         # Show success message and download button
         st.success("✅ File successfully generated!")
         st.download_button(
             label="Download Processed File",
-            data=processed_file_content,
-            file_name=output_filename,
+            data=st.session_state.processed_file_content,
+            file_name=st.session_state.output_filename,
             mime="text/plain"
         )
-
+        
+        # Display additional suggestions for deactivation (low stock)
+        if not df_low_stock.empty:
+            st.subheader("Suggested Additional Deactivations (Low Stock)")
+            st.write(df_low_stock[["PID", "MPL_PRODUCT_ID", "Available_Qty_mpl", "MODEL_YEAR"]])
