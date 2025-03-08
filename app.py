@@ -59,7 +59,7 @@ if st.button("Process Files"):
         st.write("Data Feed Columns:", df_feed.columns.tolist())  # Debugging output
         
         # Ensure required columns exist
-        required_columns = {"PID", "MPL_PRODUCT_ID", "COLOR_ID", "BASE_APPROVED", "COLOR_APPROVED", "SKU_APPROVED", "ECOM_ENABLED", "MODEL_YEAR"}
+        required_columns = {"PID", "MPL_PRODUCT_ID", "MODEL_YEAR"}
         if not required_columns.issubset(df_feed.columns):
             st.error(f"Data Feed is missing required columns: {required_columns - set(df_feed.columns)}")
             st.stop()
@@ -67,16 +67,8 @@ if st.button("Process Files"):
         # Convert MODEL_YEAR to numeric
         df_feed["MODEL_YEAR"] = pd.to_numeric(df_feed["MODEL_YEAR"], errors='coerce')
         
-        # Filter data feed: Only True values in all approval columns
-        df_feed_filtered = df_feed[
-            (df_feed["BASE_APPROVED"] == True) &
-            (df_feed["COLOR_APPROVED"] == True) &
-            (df_feed["SKU_APPROVED"] == True) &
-            (df_feed["ECOM_ENABLED"] == True)
-        ]
-        
         # Merge with inventory to get Available Qty and keep MPL_PRODUCT_ID from Inventory File
-        df_merged = df_feed_filtered.merge(df_inventory[['PID', 'MPL_PRODUCT_ID', 'Available_Qty']], on="PID", how="left")
+        df_merged = df_feed.merge(df_inventory[['PID', 'MPL_PRODUCT_ID', 'Available_Qty']], on="PID", how="left")
         st.write("Merged DataFrame Columns:", df_merged.columns.tolist())  # Debugging output
         
         if "MPL_PRODUCT_ID" not in df_merged.columns:
@@ -95,7 +87,7 @@ if st.button("Process Files"):
         df_final_filtered = df_final[(df_final["Available_Qty_mpl"] == 0) & (df_final["MODEL_YEAR"] < selected_year)]
         
         # Prepare output file
-        df_output = df_final_filtered[["PID", "MPL_PRODUCT_ID", "COLOR_ID"]].copy()
+        df_output = df_final_filtered[["PID", "MPL_PRODUCT_ID"]].copy()
         df_output["CATALOG_VERSION"] = "SBC" + selected_country + "ProductCatalog"
         df_output["APPROVAL_STATUS"] = "unapproved"
         df_output.rename(columns={"PID": "SKU", "MPL_PRODUCT_ID": "Base Product ID"}, inplace=True)
