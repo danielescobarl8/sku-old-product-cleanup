@@ -8,14 +8,14 @@ PASSWORD = "specialized1974"
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if not st.session_state.logged_in:
-    st.title("\ud83d\udd12 Secure Access")
+    st.title("Secure Access")
     user_password = st.text_input("Enter Password:", type="password")
     if st.button("Login"):
         if user_password == PASSWORD:
             st.session_state.logged_in = True
             st.rerun()
         else:
-            st.error("\u274c Incorrect password. Try again.")
+            st.error("Incorrect password. Try again.")
 if not st.session_state.logged_in:
     st.stop()
 
@@ -91,7 +91,6 @@ if st.button("Process Files"):
         
         # Apply correct filtering logic
         df_bikes = df_final[(df_final["Available_Qty_mpl"] == 0) & (df_final["MODEL_YEAR"] < selected_year) & (df_final["IS_BIKE"] == True)]
-        df_non_bikes = df_final[(df_final["Available_Qty_mpl"] == 0) & (df_final["MODEL_YEAR"] < selected_year) & (df_final["IS_BIKE"] == False)]
         
         # Create bikes output file at PRODUCT_ID level
         df_bikes_output = df_bikes.drop_duplicates(subset=["MPL_PRODUCT_ID"])[["MPL_PRODUCT_ID"]].copy()
@@ -100,11 +99,11 @@ if st.button("Process Files"):
         df_bikes_output["ARCHIVED"] = "TRUE"
         df_bikes_output = df_bikes_output.assign(**{col: "" for col in ["ECOM_ENABLED", "CN_PRODUCT_LINK", "JP_PRODUCT_LINK", "KR_PRODUCT_LINK", "NEW", "NEW_END_DATE", "IS_TESTABLE", "CNC_DISABLED", "HOME_DELIVERY", "CO_PRODUCT_LINK", "NON_RETURNABLE", "STH_DISABLED"]})
         
-        # Store processed files in session state
-        st.session_state.processed_file_content_bikes = df_bikes_output.to_csv(sep="|", index=False)
+        # Store processed files in session state with UTF-8 encoding
+        st.session_state.processed_file_content_bikes = df_bikes_output.to_csv(sep="|", index=False, encoding='utf-8', errors='replace')
         
         # Show success message and download buttons
-        st.success("\u2705 Files successfully generated!")
+        st.success("Files successfully generated!")
         st.download_button(
             label="Download Processed File (Bikes)",
             data=st.session_state.processed_file_content_bikes,
