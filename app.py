@@ -41,13 +41,25 @@ if st.button("Process Files"):
     if inventory_file and data_feed_file:
         try:
             df_inventory = pd.read_excel(inventory_file, sheet_name=0, usecols=["Item Number", "Available Qty"])
-            df_inventory.rename(columns={"Item Number": "PID", "Available Qty": "Available_Qty"}, inplace=True)
+            df_inventory.rename(columns=lambda x: x.strip().upper(), inplace=True)
+            df_inventory.rename(columns={"ITEM NUMBER": "PID", "AVAILABLE QTY": "Available_Qty"}, inplace=True)
         except Exception as e:
             st.error(f"Error reading inventory file: {e}")
             st.stop()
 
         try:
-            df_feed = pd.read_csv(data_feed_file, sep=None, engine='python', usecols=["PID", "MPL_PRODUCT_ID", "MODEL_YEAR", "BASE_APPROVED", "COLOR_APPROVED", "SKU_APPROVED", "ECOM_ENABLED", "IS_BIKE"])
+            # Detect correct delimiter
+            df_feed = pd.read_csv(data_feed_file, sep=None, engine='python')
+            df_feed.rename(columns=lambda x: x.strip().upper(), inplace=True)
+            
+            required_columns = {"PID", "MPL_PRODUCT_ID", "MODEL_YEAR", "BASE_APPROVED", "COLOR_APPROVED", "SKU_APPROVED", "ECOM_ENABLED", "IS_BIKE"}
+            missing_columns = required_columns - set(df_feed.columns)
+            
+            if missing_columns:
+                st.error(f"Data Feed is missing required columns: {missing_columns}. Available columns: {df_feed.columns.tolist()}")
+                st.stop()
+            
+            df_feed = df_feed[list(required_columns)]
         except Exception as e:
             st.error(f"Error reading data feed: {e}")
             st.stop()
